@@ -14,11 +14,17 @@ public class Day01 : BaseDay
 
     public override ValueTask<string> Solve_1() {
         var sum = 0;
-        foreach(var l in _input)
+        foreach (var l in _input)
         {
-            var firstDigit = int.Parse(l.Where(char.IsDigit).First().ToString());
-            var lastDigit = int.Parse(l.Where(char.IsDigit).Last().ToString());
-            sum += firstDigit * 10 + lastDigit;
+            List<int> digits = new();
+            for (var i = 0; i < l.Length; i++)
+            {
+                if (char.IsDigit(l[i]))
+                {
+                    digits.Add(l[i] - '0');
+                }
+            }
+            sum += digits[0] * 10 + digits[^1];
         }
 
         return new(sum.ToString()); 
@@ -27,45 +33,26 @@ public class Day01 : BaseDay
     public override ValueTask<string> Solve_2()
     {
         var sum = 0;
-        Regex twoNumbers = new Regex(@"(one|two|three|four|five|six|seven|eight|nine|[1-9]).*(one|two|three|four|five|six|seven|eight|nine|[1-9])");
-        Regex singleNumber = new Regex(@"(one|two|three|four|five|six|seven|eight|nine|[1-9])");
+        var words = new string[] { "one", "two", "three", "four", "five", "six", "seven", "eight", "nine" };
         foreach (var l in _input)
         {
-            var firstMatch = "";
-            var lastMatch = "";
-            var match = twoNumbers.Match(l);
-            firstMatch = match.Groups[1].Value;
-            lastMatch = match.Groups[match.Groups.Count - 1].Value;
-            if (match.Success == false)
+            List<int> digits = new();
+            for (var i = 0; i < l.Length; i++)
             {
-                match = singleNumber.Match(l);
-                lastMatch = firstMatch = match.Groups[1].Value;
+                if (char.IsDigit(l[i]))
+                {
+                    digits.Add(l[i] - '0');
+                }
+                foreach(var w in words)
+                {
+                    if (l[i..].StartsWith(w))
+                    {
+                        digits.Add(Array.IndexOf(words, w) + 1);
+                    }
+                }   
             }
-            
-            var firstNumber = 0;
-            var lastNumber = 0;
-
-            if (int.TryParse(firstMatch, out firstNumber))
-            {
-                sum += firstNumber * 10;
-            }
-            else
-            {
-                firstNumber = Array.IndexOf(WORDS, firstMatch);
-                sum += firstNumber * 10;
-            }
-
-            if (int.TryParse(lastMatch, out lastNumber))
-            {
-                sum += lastNumber;
-            }
-            else
-            {
-                lastNumber = Array.IndexOf(WORDS, lastMatch);
-                sum += lastNumber;
-            }
-        } 
-            
+            sum += digits[0] * 10 + digits[^1];
+        }  
         return new(sum.ToString());
     }
 }
