@@ -63,25 +63,7 @@ namespace AdventOfCode
 
         public override ValueTask<string> Solve_1()
         {
-            var possibleGames = 0;
-            var answer = 0;
-
-            foreach(var game in _games)
-            {
-                var foundBadDraw = false;
-                foreach(var set in game.CubeSets)
-                {
-                    if (set.Red > 12) { foundBadDraw = true; break; }
-                    if (set.Green > 13) { foundBadDraw = true; break; }
-                    if (set.Blue > 14) { foundBadDraw = true; break; }
-                }
-
-                if (!foundBadDraw)
-                {
-                    possibleGames++;
-                    answer += game.Id;
-                }
-            }
+            var answer = _games.Where(g => g.CubeSets.All(s => s.Red <= 12 && s.Green <= 13 && s.Blue <= 14)).Sum(g => g.Id);
 
             return new(answer.ToString());
         }
