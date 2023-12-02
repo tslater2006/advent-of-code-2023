@@ -1,6 +1,6 @@
 if (args.Length == 0)
 {
-    await Solver.SolveLast(opt => opt.ClearConsole = false);
+    await Solver.SolveLast(opt => { opt.ClearConsole = false; opt.ShowConstructorElapsedTime = true; });
 }
 else if (args.Length == 1 && args[0].Contains("all", StringComparison.CurrentCultureIgnoreCase))
 {
@@ -8,6 +8,7 @@ else if (args.Length == 1 && args[0].Contains("all", StringComparison.CurrentCul
     {
         opt.ShowConstructorElapsedTime = true;
         opt.ShowTotalElapsedTimePerDay = true;
+        opt.ShowConstructorElapsedTime = true;
     });
 }
 else
