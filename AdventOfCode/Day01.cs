@@ -1,7 +1,4 @@
-﻿using System.ComponentModel.Design;
-using System.Text.RegularExpressions;
-
-namespace AdventOfCode;
+﻿namespace AdventOfCode;
 
 public class Day01 : BaseDay
 {
