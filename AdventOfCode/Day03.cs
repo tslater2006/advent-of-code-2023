@@ -1,6 +1,7 @@
 ﻿using AdventOfCode.Common;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -10,11 +11,11 @@ namespace AdventOfCode
     struct Part
     {
         public int Number;
-        public List<Point2D> Points;
+        public Rectangle BoundingBox;
     }
     struct Symbol
     {
-        public Point2D Point;
+        public Point Location;
         public char Type;
     }
     internal class Day03 : BaseDay
@@ -22,39 +23,54 @@ namespace AdventOfCode
         
         List<Part> Parts = new();
         List<Symbol> Symbols = new();
-
         public Day03()
         {
             string[] lines = File.ReadAllLines(InputFilePath);
             for(var y = 0; y < lines.Length; y++)
             {
                 var runningPartNumber = 0;
-                Part part = new Part() { Points = new() };
+                Part part = new Part();
                 for (var x = 0; x < lines[y].Length; x++)
                 {
                     if (char.IsDigit(lines[y][x]))
                     {
-                        part.Points.Add(new Point2D { X = x, Y = y });
+                        if (runningPartNumber == 0)
+                        {
+                            part.BoundingBox = new Rectangle(x, y, 1, 1);
+                        }
                         runningPartNumber *= 10;
                         runningPartNumber += lines[y][x] - '0';
                     } else
                     {
                         if (runningPartNumber > 0)
                         {
+                            part.BoundingBox.Width = x - part.BoundingBox.X;
+
+                            /* Pad the bounding box by 1 unit in each direction */
+                            part.BoundingBox.X -= 1;
+                            part.BoundingBox.Y -= 1;
+                            part.BoundingBox.Width += 2;
+                            part.BoundingBox.Height += 2;
+
+
                             part.Number = runningPartNumber;
                             Parts.Add(part);
                             runningPartNumber = 0;
-                            part = new Part() { Points = new() };
+                            part = new Part();
                         }
                         if (lines[y][x] != '.')
                         {
-                            Symbols.Add(new Symbol { Point = { X = x, Y = y }, Type = lines[y][x] });
+                            Symbols.Add(new Symbol { Location = { X = x, Y = y }, Type = lines[y][x] });
                         }
                     }
                     
                 }
                 if (runningPartNumber > 0)
                 {
+                    part.BoundingBox.X -= 1;
+                    part.BoundingBox.Y -= 1;
+                    part.BoundingBox.Width += 2;
+                    part.BoundingBox.Height += 2;
                     part.Number = runningPartNumber;
                     Parts.Add(part);
                     runningPartNumber = 0;
@@ -64,15 +80,11 @@ namespace AdventOfCode
         public override ValueTask<string> Solve_1()
         {
             var answer = 0;
-            foreach(var part in Parts)
+            foreach (var part in Parts)
             {
-                foreach (var point in part.Points.SelectMany(p => p.PointsAround()))
+                if (Symbols.Where(s => part.BoundingBox.Contains(s.Location)).Any())
                 {
-                    if (Symbols.Where(s => s.Point.X == point.X && s.Point.Y == point.Y).Any())
-                    {
-                        answer += part.Number;
-                        break;
-                    }
+                    answer += part.Number;
                 }
             }
             return new(answer.ToString());
@@ -81,14 +93,12 @@ namespace AdventOfCode
         public override ValueTask<string> Solve_2()
         {
             var answer = 0;
-            var possibleGears = Symbols.Where(s => s.Type == '*');
-
-            foreach(var candidate in possibleGears)
+            foreach (var symbol in Symbols.Where(s => s.Type == '*'))
             {
-                var touchingParts = Parts.Where(p => p.Points.SelectMany(p => p.PointsAround()).Contains(candidate.Point)).ToList();
-                if (touchingParts.Count == 2) 
+                var neighboringParts = Parts.Where(p => p.BoundingBox.Contains(symbol.Location)).ToList();
+                if (neighboringParts.Count == 2)
                 {
-                    answer += (touchingParts[0].Number * touchingParts[1].Number);
+                    answer += neighboringParts[0].Number * neighboringParts[1].Number;
                 }
             }
             return new(answer.ToString());
