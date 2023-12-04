@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace AdventOfCode
@@ -65,7 +66,14 @@ namespace AdventOfCode
 
         public override ValueTask<string> Solve_1()
         {
-            var answer = cards.Sum(c => { var matches = c.MatchingNumbers(); if (matches == 0) { return 0; } else { return 1 << matches - 1; } });
+            var answer = 0;
+            foreach(var count in cardMatchCounts)
+            {
+                if (count > 0)
+                {
+                    answer += 1 << count - 1;
+                }
+            }
             return new(answer.ToString());
         }
 
