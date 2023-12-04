@@ -9,59 +9,30 @@ namespace AdventOfCode
 {
     internal class Day04 : BaseDay
     {
-        struct Card
-        {
-            public int[] WinningNumbers;
-            public int[] DrawnNumbers;
-
-            public int MatchingNumbers()
-            {
-                int winningIndex = 0;
-                int drawnIndex = 0;
-                int matches = 0;
-                while (winningIndex < WinningNumbers.Length && drawnIndex < DrawnNumbers.Length)
-                {
-                    while (winningIndex < WinningNumbers.Length && WinningNumbers[winningIndex] < DrawnNumbers[drawnIndex])
-                    {
-                        winningIndex++;
-                    }
-                    if (winningIndex == WinningNumbers.Length) { break; }
-                    while (drawnIndex < DrawnNumbers.Length && DrawnNumbers[drawnIndex] < WinningNumbers[winningIndex])
-                    {
-                        drawnIndex++;
-                    }
-                    if (drawnIndex == DrawnNumbers.Length) { break; }
-                    if (WinningNumbers[winningIndex] == DrawnNumbers[drawnIndex])
-                    {
-                        matches++;
-                        winningIndex++;
-                        drawnIndex++;
-                    }
-                }
-                return matches;
-            }
-        }
-
-        List<Card> cards = new();
+        int totalCards = 0;
         int[] cardMatchCounts;
+        Dictionary<int, int> memoizedCardCounts = new();
+
         public Day04()
         {
             var lines = File.ReadAllLines(InputFilePath);
-
-            foreach (var line in lines)
+            totalCards = lines.Length;
+            cardMatchCounts = new int[totalCards];
+            for (var x = 0; x < lines.Length; x++)
             {
-                Card c = new Card();
-                var cardHalves = line.Split(":")[1].Split("|");
-                c.WinningNumbers = cardHalves[0].Split(" ", StringSplitOptions.RemoveEmptyEntries).Select(s => int.Parse(s)).Order().ToArray();
-                c.DrawnNumbers = cardHalves[1].Split(" ", StringSplitOptions.RemoveEmptyEntries).Select(s => int.Parse(s)).Order().ToArray();
-                cards.Add(c);
-            }
-            cardMatchCounts = new int[cards.Count];
-            for (var x = 0; x < cards.Count; x++)
-            {
-                cardMatchCounts[x] = cards[x].MatchingNumbers();
-            }
+                var matchCount = 0;
+                var cardHalves = lines[x].Split(":")[1].Split("|");
+                HashSet<string> winningNumbers = [.. cardHalves[0].Split(" ", StringSplitOptions.RemoveEmptyEntries)];
 
+                foreach (var drawn in cardHalves[1].Split(" ", StringSplitOptions.RemoveEmptyEntries))
+                {
+                    if (winningNumbers.Contains(drawn))
+                    {
+                        matchCount++;
+                    }
+                }
+                cardMatchCounts[x] = matchCount;
+            }
         }
 
         public override ValueTask<string> Solve_1()
@@ -81,7 +52,7 @@ namespace AdventOfCode
         {
             Queue<int> cardNumsToProcess = new();
             int cardsProcessed = 0;
-            for(var x = 0; x < cards.Count; x++)
+            for(var x = 0; x < totalCards; x++)
             {
                 cardsProcessed += ProcessCard(x);
             }
@@ -89,7 +60,6 @@ namespace AdventOfCode
             return new(cardsProcessed.ToString());
         }
 
-        Dictionary<int, int> memoizedCardCounts = new();
         private int ProcessCard(int index)
         {
             if (memoizedCardCounts.ContainsKey(index))
