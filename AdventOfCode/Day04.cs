@@ -72,23 +72,29 @@ namespace AdventOfCode
         public override ValueTask<string> Solve_2()
         {
             Queue<int> cardNumsToProcess = new();
-
+            int cardsProcessed = 0;
             for(var x = 0; x < cards.Count; x++)
             {
-                cardNumsToProcess.Enqueue(x);
-            }
-            int cardsProcessed = 0;
-            while (cardNumsToProcess.Count > 0)
-            {
-                int index = cardNumsToProcess.Dequeue();
-                cardsProcessed++;
-                for (var x = index + 1; x < (index+1) + cardMatchCounts[index]; x++)
-                {
-                    cardNumsToProcess.Enqueue(x);
-                }
+                cardsProcessed += ProcessCard(x);
             }
             
             return new(cardsProcessed.ToString());
         }
+
+        Dictionary<int, int> memoizedCardCounts = new();
+        private int ProcessCard(int index)
+        {
+            if (memoizedCardCounts.ContainsKey(index))
+            {
+                return memoizedCardCounts[index];
+            }
+            int count = 1;
+            for (var x = index + 1; x < (index + 1) + cardMatchCounts[index]; x++)
+            {
+                count += ProcessCard(x);
+            }
+            memoizedCardCounts[index] = count;
+            return count;
+        }   
     }
 }
