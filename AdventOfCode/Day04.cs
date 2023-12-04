@@ -20,17 +20,38 @@ namespace AdventOfCode
             cardMatchCounts = new int[totalCards];
             for (var x = 0; x < lines.Length; x++)
             {
+                var line = lines[x];
                 var matchCount = 0;
-                var cardHalves = lines[x].Split(":")[1].Split("|");
-                HashSet<string> winningNumbers = [.. cardHalves[0].Split(" ", StringSplitOptions.RemoveEmptyEntries)];
 
-                foreach (var drawn in cardHalves[1].Split(" ", StringSplitOptions.RemoveEmptyEntries))
+                int charIndex = 0;
+                while (line[charIndex] != ':')
                 {
-                    if (winningNumbers.Contains(drawn))
+                    charIndex++;
+                }
+                charIndex+= 2;
+                HashSet<int> winningNumbers = new();
+                while (line[charIndex] != '|')
+                {
+                    winningNumbers.Add((byte)line[charIndex++] << 8 | (byte)line[charIndex++]);
+                    charIndex++;
+                }
+                charIndex += 2;
+                while (charIndex < line.Length)
+                {
+                    var b1 = (byte)line[charIndex++];
+                    if (charIndex >= line.Length)
+                    {
+                        break;
+                    }
+                    var b2 = (byte)line[charIndex++];
+                    charIndex++;
+                    var drawnNum = b1 << 8 | b2;
+                    if (winningNumbers.Contains(drawnNum))
                     {
                         matchCount++;
                     }
                 }
+                    
                 cardMatchCounts[x] = matchCount;
             }
         }
