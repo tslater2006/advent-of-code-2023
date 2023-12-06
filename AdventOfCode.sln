@@ -9,6 +9,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		AOT|Any CPU = AOT|Any CPU
+		AOT|x64 = AOT|x64
+		AOT|x86 = AOT|x86
 		Debug|Any CPU = Debug|Any CPU
 		Debug|x64 = Debug|x64
 		Debug|x86 = Debug|x86
@@ -17,6 +20,12 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6B01383F-FF08-4839-BF44-2DE9071CCC37}.AOT|Any CPU.ActiveCfg = AOT|Any CPU
+		{6B01383F-FF08-4839-BF44-2DE9071CCC37}.AOT|Any CPU.Build.0 = AOT|Any CPU
+		{6B01383F-FF08-4839-BF44-2DE9071CCC37}.AOT|x64.ActiveCfg = AOT|Any CPU
+		{6B01383F-FF08-4839-BF44-2DE9071CCC37}.AOT|x64.Build.0 = AOT|Any CPU
+		{6B01383F-FF08-4839-BF44-2DE9071CCC37}.AOT|x86.ActiveCfg = AOT|Any CPU
+		{6B01383F-FF08-4839-BF44-2DE9071CCC37}.AOT|x86.Build.0 = AOT|Any CPU
 		{6B01383F-FF08-4839-BF44-2DE9071CCC37}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{6B01383F-FF08-4839-BF44-2DE9071CCC37}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6B01383F-FF08-4839-BF44-2DE9071CCC37}.Debug|x64.ActiveCfg = Debug|Any CPU
