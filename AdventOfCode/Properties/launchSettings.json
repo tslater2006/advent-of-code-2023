@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "AdventOfCode": {
+      "commandName": "Project"
+    },
+    "AdventOfCode - All": {
+      "commandName": "Project",
+      "commandLineArgs": "all"
+    }
+  }
+}
