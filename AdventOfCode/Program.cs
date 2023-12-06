@@ -66,6 +66,12 @@ var day5p2 = await day5.Solve_2();
 Console.WriteLine("Day 5 Part 1: " + day5p1);
 Console.WriteLine("Day 5 Part 2: " + day5p2);
 
+var day6 = new AdventOfCode.Day06();
+var day6p1 = await day6.Solve_1();
+var day6p2 = await day6.Solve_2();
+
+Console.WriteLine("Day 6 Part 1: " + day6p1);
+Console.WriteLine("Day 6 Part 2: " + day6p2);
 Console.WriteLine("Done in: " + sw.ElapsedMilliseconds + "ms");
 #endregion
 #endif
