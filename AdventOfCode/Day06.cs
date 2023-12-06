@@ -49,14 +49,20 @@ namespace AdventOfCode
 
         public override ValueTask<string> Solve_2()
         {
-            var answer = 0;
             var lines = File.ReadAllLines(InputFilePath);
             var time = ulong.Parse(lines[0].Split(':')[1].Replace(" ", ""));
             var distances = ulong.Parse(lines[1].Split(':')[1].Replace(" ",""));
-            for(ulong x = 0; x < time; x++)
-            {
-                if ((time - x) * x > distances) { answer++; }
-            }
+
+            /* Formula for winning is (t - h) * h > d 
+             * this can be turned in to an equation (t - h) * h = d, that is, what values lead to a tie
+             * this can be rearranged to h^2 - th + d = 0 and use the quadratic formula to find both tie points
+             * everything between is a win */
+
+            var lowTie = (time - (ulong)(Math.Sqrt(time * time - 4 * distances))) / 2;
+            var highTie = (time + (ulong)(Math.Sqrt(time * time - 4 * distances))) / 2;
+
+            var answer = highTie - lowTie;
+
             return new(answer.ToString());
         }
     }
