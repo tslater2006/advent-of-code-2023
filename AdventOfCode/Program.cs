@@ -74,6 +74,12 @@ var day6p2 = await day6.Solve_2();
 
 PrintResults(6, day6p1, day6p2, sw.ElapsedMilliseconds);
 
+var day7 = new AdventOfCode.Day07();
+var day7p1 = await day7.Solve_1();
+var day7p2 = await day7.Solve_2();
+
+PrintResults(7, day7p1, day7p2, sw.ElapsedMilliseconds);
+
 Console.WriteLine("\nDone in: " + sw.ElapsedMilliseconds + "ms");
 #endregion
 #endif
