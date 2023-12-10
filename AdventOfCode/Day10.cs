@@ -143,87 +143,22 @@ namespace AdventOfCode
 
         public override ValueTask<string> Solve_2()
         {
-            /* We make a 3x3 scaled version of the map, to account for being able to fit bewteen the pipes */
-            Dictionary<Point, PipeType> ScaledMap = new();
-            foreach (var p in LoopPoints)
+
+            /* Use shoestring formula to calculate area of loop */
+            double area = 0;
+            for (var i = 0; i < LoopPoints.Count; i++)
             {
-                switch (Map[p])
-                {
-                    case PipeType.Vertical:
-                        ScaledMap.Add(new Point(p.X * 3 + 1, p.Y * 3), PipeType.Pipe);
-                        ScaledMap.Add(new Point(p.X * 3 + 1, p.Y * 3 + 1), PipeType.Pipe);
-                        ScaledMap.Add(new Point(p.X * 3 + 1, p.Y * 3 + 2), PipeType.Pipe);
-                        break;
-                    case PipeType.Horizontal:
-                        ScaledMap.Add(new Point(p.X * 3, p.Y * 3 + 1), PipeType.Pipe);
-                        ScaledMap.Add(new Point(p.X * 3 + 1, p.Y * 3 + 1), PipeType.Pipe);
-                        ScaledMap.Add(new Point(p.X * 3 + 2, p.Y * 3 + 1), PipeType.Pipe);
-                        break;
-                    case PipeType.NorthAndEast:
-                        ScaledMap.Add(new Point(p.X * 3 + 1, p.Y * 3), PipeType.Pipe);
-                        ScaledMap.Add(new Point(p.X * 3 + 1, p.Y * 3 + 1), PipeType.Pipe);
-                        ScaledMap.Add(new Point(p.X * 3 + 2, p.Y * 3 + 1), PipeType.Pipe);
-                        break;
-                    case PipeType.NorthAndWest:
-                        ScaledMap.Add(new Point(p.X * 3 + 1, p.Y * 3), PipeType.Pipe);
-                        ScaledMap.Add(new Point(p.X * 3 + 1, p.Y * 3 + 1), PipeType.Pipe);
-                        ScaledMap.Add(new Point(p.X * 3, p.Y * 3 + 1), PipeType.Pipe);
-                        break;
-                    case PipeType.SouthAndWest:
-                        ScaledMap.Add(new Point(p.X * 3 + 1, p.Y * 3 + 1), PipeType.Pipe);
-                        ScaledMap.Add(new Point(p.X * 3 + 1, p.Y * 3 + 2), PipeType.Pipe);
-                        ScaledMap.Add(new Point(p.X * 3, p.Y * 3 + 1), PipeType.Pipe);
-                        break;
-                    case PipeType.SouthAndEast:
-                        ScaledMap.Add(new Point(p.X * 3 + 1, p.Y * 3 + 1), PipeType.Pipe);
-                        ScaledMap.Add(new Point(p.X * 3 + 1, p.Y * 3 + 2), PipeType.Pipe);
-                        ScaledMap.Add(new Point(p.X * 3 + 2, p.Y * 3 + 1), PipeType.Pipe);
-                        break;
-                    case PipeType.Start:
-                        ScaledMap.Add(new Point(p.X * 3 + 1, p.Y * 3), PipeType.Pipe);
-                        ScaledMap.Add(new Point(p.X * 3 + 1, p.Y * 3 + 1), PipeType.Pipe);
-                        ScaledMap.Add(new Point(p.X * 3 + 1, p.Y * 3 + 2), PipeType.Pipe);
-                        ScaledMap.Add(new Point(p.X * 3, p.Y * 3 + 1), PipeType.Pipe);
-                        ScaledMap.Add(new Point(p.X * 3 + 2, p.Y * 3 + 1), PipeType.Pipe);
-                        break;
-                    default:
-                        break;
-
-                }
+                var p1 = LoopPoints[i];
+                var p2 = LoopPoints[(i + 1) % LoopPoints.Count];
+                area += (p1.X * p2.Y) - (p1.Y * p2.X);
             }
+            area = Math.Abs(area / 2);
 
-            Stack<Point> stack = new();
-            stack.Push(new Point(-1,-1));
-            ScaledMap.Add(new Point(-1, -1), PipeType.Outside);
-            while (stack.Count > 0)
-            {
-                var p = stack.Pop();
-                foreach (var n in p.GetNeighborsWithinRectangle(new Rectangle(-1, -1, MapWidth * 3 + 2, MapHeight * 3 + 2)))
-                {
-                    if (!ScaledMap.ContainsKey(n))
-                    {
-                        ScaledMap.Add(n, PipeType.Outside);
-                        stack.Push(n);
-                        continue;
-                    }       
-                }
-            }
-
-            /* loop through Map and check if each point is in the ScaledMap */
-            var mapPointsInFlood = 0;
-            for(var y = 0; y < MapHeight; y++)
-            {
-                for(var x = 0; x < MapWidth; x++)
-                {
-                    if (ScaledMap.ContainsKey(new Point(x * 3 + 1, y * 3 + 1)))
-                    {
-                        mapPointsInFlood++;
-                    }
-                }
-            }
-
-            var missing = MapWidth * MapHeight - mapPointsInFlood;
-            return new(missing.ToString());
+            /* Interior points via Pick's theorem that states: A = I + B/2 - 1 */
+            /* rearranged to: I = A - B/2 + 1 */
+            var boundaryPoints = LoopPoints.Count;
+            var interiorPoints = (int)(area - (boundaryPoints / 2) + 1);
+            return new(interiorPoints.ToString());
         }
     }
 }
