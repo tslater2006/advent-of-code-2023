@@ -19,6 +19,12 @@ namespace AdventOfCode
         int MapWidth;
         int MapHeight;
         Point StartPoint;
+
+        (Point, PipeType[]) northConnection = (new Point(0, -1), new[] { PipeType.SouthAndEast, PipeType.SouthAndWest, PipeType.Vertical });
+        (Point, PipeType[]) southConnection = (new Point(0, 1), new[] { PipeType.NorthAndEast, PipeType.NorthAndWest, PipeType.Vertical });
+        (Point, PipeType[]) eastConnection = (new Point(1, 0), new[] { PipeType.NorthAndWest, PipeType.SouthAndWest, PipeType.Horizontal });
+        (Point, PipeType[]) westConnection = (new Point(-1, 0), new[] { PipeType.NorthAndEast, PipeType.SouthAndEast, PipeType.Horizontal });
+
         enum PipeType : int
         {
             Vertical = (byte)'|',
@@ -33,6 +39,28 @@ namespace AdventOfCode
             Pipe = (byte)'#'
 
         }
+        
+        enum Direction
+        {
+            North,
+            East,
+            South,
+            West
+        }
+
+        private Direction GetDirectionToPoint(Point fromPoint, Point toPoint)
+        {
+            if (fromPoint.X == toPoint.X)
+            {
+                if (fromPoint.Y > toPoint.Y) { return Direction.South; }
+                else { return Direction.North; }
+            } else
+            {
+                if (fromPoint.X > toPoint.X) { return Direction.East; }
+                else { return Direction.West; }
+            }
+        }   
+
         public Day10()
         {
             var lines = File.ReadAllLines(InputFilePath);
@@ -51,10 +79,6 @@ namespace AdventOfCode
                 }
             }
 
-            var northConnection = (new Point(0, -1), new[] { PipeType.SouthAndEast, PipeType.SouthAndWest, PipeType.Vertical });
-            var southConnection = (new Point(0, 1), new[] { PipeType.NorthAndEast, PipeType.NorthAndWest, PipeType.Vertical });
-            var eastConnection = (new Point(1, 0), new[] { PipeType.NorthAndWest, PipeType.SouthAndWest, PipeType.Horizontal });
-            var westConnection = (new Point(-1, 0), new[] { PipeType.NorthAndEast, PipeType.SouthAndEast, PipeType.Horizontal });
 
             Neighbors.Add(PipeType.Vertical, new[] { northConnection, southConnection });
             Neighbors.Add(PipeType.Horizontal, new[] { eastConnection, westConnection });
@@ -69,43 +93,52 @@ namespace AdventOfCode
         }
         public override ValueTask<string> Solve_1()
         {
-            bool[,] visited = new bool[MapWidth, MapHeight];
-            Queue<(Point p, int depth)> stack = new();
-            stack.Enqueue((StartPoint, 0));
             LoopPoints.Add(StartPoint);
-            int maxDepth = 0;
 
-            while(stack.Count > 0)
+            Point previousPoint = StartPoint;
+            Point currentPoint = StartPoint;
+            foreach (var neighbor in Neighbors[Map[StartPoint]])
             {
-                var (curPoint, depth) = stack.Dequeue();
-                
-                var visitedNeighbors = 0;
-                foreach (var neighbor in Neighbors[Map[curPoint]])
+                var testPoint = new Point(StartPoint.X + neighbor.Delta.X, StartPoint.Y + neighbor.Delta.Y);
+                var directionToTestPoint = GetDirectionToPoint(fromPoint: StartPoint, toPoint: testPoint);
+                if (directionToTestPoint == Direction.South)
                 {
-                    var nextPoint = new Point(curPoint.X + neighbor.Delta.X, curPoint.Y + neighbor.Delta.Y);
-                    if (!Map.ContainsKey(nextPoint)) { continue; }
-
-                    if (neighbor.AllowedTypes.Contains(Map[nextPoint])) {
-                        if (visited[nextPoint.X, nextPoint.Y] == false)
-                        {
-                            LoopPoints.Add(nextPoint);
-                            stack.Enqueue((nextPoint, depth + 1));
-                            visited[nextPoint.X, nextPoint.Y] = true;
-                        } else
-                        {
-                            visitedNeighbors++;
-                        }
-                    }
-              
-                }
-
-                if (visitedNeighbors == 2)
+                    Neighbors[Map[testPoint]].Contains(northConnection);
+                    currentPoint = testPoint;
+                    break;
+                } else if (directionToTestPoint == Direction.North)
                 {
-                    maxDepth = Math.Max(maxDepth, depth);
+                    Neighbors[Map[testPoint]].Contains(southConnection);
+                    currentPoint = testPoint;
+                    break;
+                } else if (directionToTestPoint == Direction.East)
+                {
+                    Neighbors[Map[testPoint]].Contains(westConnection);
+                    currentPoint = testPoint;
+                    break;
+                } else if (directionToTestPoint == Direction.West)
+                {
+                    Neighbors[Map[testPoint]].Contains(eastConnection);
+                    currentPoint = testPoint;
+                    break;
                 }
             }
-
-            return new(maxDepth.ToString());
+            
+            while(currentPoint != StartPoint)
+            {
+                LoopPoints.Add(currentPoint);
+                var directionToPreviousPoint = GetDirectionToPoint(fromPoint: currentPoint, toPoint: previousPoint);
+                foreach (var neighbor in Neighbors[Map[currentPoint]])
+                {
+                    var testPoint = new Point(currentPoint.X + neighbor.Delta.X, currentPoint.Y + neighbor.Delta.Y);
+                    if (testPoint == previousPoint) { continue; }
+                    previousPoint = currentPoint;
+                    currentPoint = testPoint;
+                    break;
+                }
+            }
+            var maxDistance = (LoopPoints.Count / 2); /* half the loop length */
+            return new(maxDistance.ToString());
         }
 
         public override ValueTask<string> Solve_2()
