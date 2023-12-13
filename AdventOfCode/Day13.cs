@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -9,42 +10,34 @@ namespace AdventOfCode
 {
     internal class Day13 : BaseDay
     {
-        enum ReflectionType
+        struct Pattern
         {
-            Row, Column, None
-        }
-        class Pattern
-        {
-            public List<int> Rows = new();
+            public int[] Rows;
             public int[] Columns;
-            public Size Size;
         }
         List<Pattern> Patterns = new();
         public Day13()
         {
             bool startNewPattern = true;
-            Pattern currentPattern = null;
             int[] colVals = null;
+            List<int> rowVals = new();
             foreach(var line in File.ReadAllLines(InputFilePath))
             {
                 if (line == "")
                 {
+                    Patterns.Add(new() { Rows = rowVals.ToArray(), Columns = colVals });
                     startNewPattern = true;
                     continue;
                 }
 
                 if (startNewPattern)
                 {
-                    currentPattern = new Pattern() { Size = new Size(line.Length, 0) };
+                    rowVals.Clear();
                     colVals = new int[line.Length];
-                    currentPattern.Columns = colVals;
-                    Patterns.Add(currentPattern);
                     startNewPattern = false;
                 }
 
-                currentPattern.Size.Height++;
-
-                var rowVal = 0;
+                int rowVal = 0;
                 for(var x = 0;x < line.Length;x++)
                 {
                     colVals[x] <<= 1;
@@ -54,154 +47,68 @@ namespace AdventOfCode
                     if (line[x] == '#')
                         rowVal|= 1;
                 }
-                currentPattern.Rows.Add(rowVal);
+                rowVals.Add(rowVal);
             }
+
+            Patterns.Add(new() { Rows = rowVals.ToArray(), Columns = colVals });
         }
-        private bool WithinOneBit(int a, int b)
+
+        private int GetReflectionIndex(int[] numbers, bool useTweak = false)
         {
-            var bitDiff = (a ^ b);
-            return (bitDiff & (bitDiff - 1)) == 0;
-        }
-        private (ReflectionType Type, int Index) GetReflectionIndex(Pattern p, bool useTweak = false)
-        {
-            var tweakCount = 0;
-            var tweakIsUsed = false;
-            /* check rows */
-            for(var x = 0; x < p.Rows.Count - 1; x++)
+
+            for (int x = 0; x < numbers.Length - 1; x++)
             {
-                if (p.Rows[x] == p.Rows[x + 1] || (WithinOneBit(p.Rows[x], p.Rows[x+1]) && !tweakIsUsed))
+                int diff = numbers[x] ^ numbers[x + 1];
+                if (diff == 0 || (useTweak && (diff & (diff - 1)) == 0 ))
                 {
-                    // possible reflection point
-                    var start = x;
-                    var end = x + 1;
-                    var reflectionFailed = false;
+                    int start = (int)x - 1;
+                    int end = (int)x + 2;
 
-                    while (!reflectionFailed && start >= 0 && end < p.Rows.Count)
+                    while (start >= 0 && end < numbers.Length && (diff & (diff - 1)) == 0)
                     {
-                        if (p.Rows[start] != p.Rows[end])
-                        {
-                            if (useTweak && !tweakIsUsed)
-                            {
-                                var bitDiff = (p.Rows[start] ^ p.Rows[end]);
-                                if (!WithinOneBit(p.Rows[start], p.Rows[end]))
-                                {
-                                    reflectionFailed = true;
-                                    tweakIsUsed = false;
-                                }
-                                else
-                                {
-
-                                    tweakIsUsed = true;
-                                }
-                            } else
-                            {
-                                reflectionFailed = true;
-                                tweakIsUsed = false;
-                            }
-                        }
+                        diff |= numbers[start] ^ numbers[end];
                         start--;
                         end++;
                     }
 
-                    if ((start == -1 || end == p.Rows.Count) && reflectionFailed == false && (useTweak == false || useTweak && tweakIsUsed))
-                        return (ReflectionType.Row, x+1);
-                }
-            }
-
-            tweakIsUsed = false;
-            /* check columns */
-            for(var x = 0; x < p.Columns.Length - 1; x++)
-            {
-                if (p.Columns[x] == p.Columns[x + 1] || (WithinOneBit(p.Columns[x], p.Columns[x + 1]) && !tweakIsUsed))
-                {
-                    // possible reflection point
-                    var start = x;
-                    var end = x + 1;
-                    var reflectionFailed = false;
-
-                    while (!reflectionFailed && start >= 0 && end < p.Columns.Length)
+                    if ((!useTweak && diff==0) || (useTweak && diff > 0 && (diff & (diff - 1)) == 0))
                     {
-                        if (p.Columns[start] != p.Columns[end])
-                        {
-                            if (useTweak && !tweakIsUsed)
-                            {
-                                
-                                if (!WithinOneBit(p.Columns[start], p.Columns[end]))
-                                {
-                                    reflectionFailed = true;
-                                    tweakIsUsed = false;
-                                }
-                                else
-                                {
-                                    tweakIsUsed = true;
-                                }
-                            }
-                            else
-                            {
-                                reflectionFailed = true;
-                                tweakIsUsed = false;
-                            }
-                        }
-                        start--;
-                        end++;
+                        return x + 1;
                     }
-
-                    if ((start== -1 || end == p.Columns.Length) && reflectionFailed == false && (useTweak == false || useTweak && tweakIsUsed))
-                        return (ReflectionType.Column, x+1);
                 }
             }
 
-            return (ReflectionType.None,0);
+            return 0;
         }
-
         public override ValueTask<string> Solve_1()
         {
-            var rows = 0;
-            var cols = 0;
+            int rows = 0;
+            int columns = 0;
 
             foreach (var p in Patterns)
             {
-                var result = GetReflectionIndex(p);
-                switch (result.Type)
-                {
-                    case ReflectionType.None:
-                        continue;
-                    case ReflectionType.Row:
-                        rows += result.Index;
-                        break;
-                    case ReflectionType.Column:
-                        cols += result.Index;
-                        break;
-                }
+                rows += GetReflectionIndex(p.Rows);
+                columns += GetReflectionIndex(p.Columns);
             }
 
-            var answer = cols + (100 * rows);
+            var answer = columns + (100 * rows);
 
             return new(answer.ToString());
         }
 
         public override ValueTask<string> Solve_2()
         {
-            var rows = 0;
-            var cols = 0;
+            int rows = 0;
+            int columns = 0;
 
             foreach (var p in Patterns)
             {
-                var result = GetReflectionIndex(p, true);
-                switch (result.Type)
-                {
-                    case ReflectionType.None:
-                        continue;
-                    case ReflectionType.Row:
-                        rows += result.Index;
-                        break;
-                    case ReflectionType.Column:
-                        cols += result.Index;
-                        break;
-                }
+                rows += GetReflectionIndex(p.Rows, true);
+                columns += GetReflectionIndex(p.Columns, true);
             }
 
-            var answer = cols + (100 * rows);
+            var answer = columns + (100 * rows);
+
             return new(answer.ToString());
         }
     }
