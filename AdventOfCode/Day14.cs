@@ -163,28 +163,26 @@ namespace AdventOfCode
         public override ValueTask<string> Solve_2()
         {
             var answer = 0;
-            List<string> seenBoards = new List<string>();
-            List<int> seenWeights = new List<int>();
+            List<(string, int)> seenBoards = new List<(string,int)>();
             InitGrid();
 
             while(true)
             {
                 RunFullCycle();
                 var load = GetNorthBeamLoad();
-                seenWeights.Add(load);
-                var asString = GridToString();
-                if (seenBoards.Contains(asString))
+                var key = (GridToString(), load);
+                if (seenBoards.Contains(key))
                 {
-                    var patternStart = seenBoards.IndexOf(asString) - 1;
+                    var patternStart = seenBoards.IndexOf(key) - 1;
                     var patternEnd = seenBoards.Count;
                     var patternLength = patternEnd - patternStart - 1;
 
-                    answer = seenWeights[patternStart + ((1000000000 - patternStart - 1) % patternLength)];
+                    answer = seenBoards[patternStart + ((1000000000 - patternStart - 1) % patternLength)].Item2;
                     break;
                 }
                 else
                 {
-                    seenBoards.Add(asString);
+                    seenBoards.Add(key);
                 }
             }
 
