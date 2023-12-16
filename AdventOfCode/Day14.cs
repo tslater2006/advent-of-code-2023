@@ -155,7 +155,6 @@ namespace AdventOfCode
         {
             InitGrid();
             TiltBoard(TiltDirection.North);
-            Console.WriteLine();
             var answer = GetNorthBeamLoad();
             return new(answer.ToString());
         }

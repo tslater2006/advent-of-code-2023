@@ -123,6 +123,12 @@ var day14p2 = await day14.Solve_2();
 
 PrintTimes(14, day14p1, day14p2, sw.ElapsedMilliseconds);
 
+var day15 = new Day15();
+var day15p1 = await day15.Solve_1();
+var day15p2 = await day15.Solve_2();
+
+PrintTimes(15, day15p1, day15p2, sw.ElapsedMilliseconds);
+
 Console.WriteLine("\nDone in: " + sw.ElapsedMilliseconds + "ms");
 
 var day = 0;
