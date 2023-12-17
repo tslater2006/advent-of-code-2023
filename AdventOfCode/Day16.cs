@@ -9,21 +9,60 @@ using System.Threading.Tasks;
 
 namespace AdventOfCode
 {
+    public enum Direction
+    {
+        NORTH, EAST, SOUTH, WEST
+    }
+    public static class DirectionExtensions
+    {
+        public static Direction Opposite(this Direction direction)
+        {
+            return direction switch
+            {
+                Direction.NORTH => Direction.SOUTH,
+                Direction.EAST => Direction.WEST,
+                Direction.SOUTH => Direction.NORTH,
+                Direction.WEST => Direction.EAST,
+                _ => throw new InvalidEnumArgumentException(nameof(direction), (int)direction, typeof(Direction))
+            };
+        }
+        public static Direction TurnCW(this Direction direction)
+        {
+            return direction switch
+            {
+                Direction.NORTH => Direction.EAST,
+                Direction.EAST => Direction.SOUTH,
+                Direction.SOUTH => Direction.WEST,
+                Direction.WEST => Direction.NORTH,
+                _ => throw new InvalidEnumArgumentException(nameof(direction), (int)direction, typeof(Direction))
+            };
+        }
+        public static Direction TurnCCW(this Direction direction)
+        {
+            return direction switch
+            {
+                Direction.NORTH => Direction.WEST,
+                Direction.EAST => Direction.NORTH,
+                Direction.SOUTH => Direction.EAST,
+                Direction.WEST => Direction.SOUTH,
+                _ => throw new InvalidEnumArgumentException(nameof(direction), (int)direction, typeof(Direction))
+            };
+        }
+    }
 
     internal class Day16 : BaseDay
     {
-        enum Direction
-        {
-            NORTH, EAST, SOUTH, WEST
-        }
 
         class LightRay
         {
+            public Point StartPosition;
+            public Direction StartDirection;
             public Point Position;
             public Direction Direction;
             public int Width;
             public int Height;
-            bool[,] VisitGrid;
+            public HashSet<Point> VisitedPoints;
+            public HashSet<Point> PassthroughPipes;
 
             public void PrintVisitGrid()
             {
@@ -31,7 +70,13 @@ namespace AdventOfCode
                 {
                     for(var x = 0; x < Width; x++)
                     {
-                        Console.Write(VisitGrid[x, y] ? 'X' : '.');
+                        if (VisitedPoints.Contains(new Point(x, y)))
+                        {
+                            Console.Write('X');
+                        } else
+                        {
+                            Console.Write('.');
+                        }
                     }
                     Console.WriteLine();
                 }   
@@ -39,53 +84,34 @@ namespace AdventOfCode
 
             public int GetVisitCount()
             {
-                var count = 0;
-                for(var x = 0; x < Width; x++)
-                {
-                    for(var y = 0; y < Height; y++)
-                    {
-                        if (VisitGrid[x, y])
-                        {
-                            count++;
-                        }
-                    }
-                }
-
-                return count;
+                return VisitedPoints.Count;
             }
 
             public LightRay(Point position, Direction direction, int width, int height)
             {
-                Position = position;
-                Direction = direction;
+                StartPosition = position;
+                StartDirection = direction;
                 Width = width;
                 Height = height;
-                VisitGrid = new bool[width, height];
+                VisitedPoints.Add(StartPosition);
             }
 
             public IEnumerable<LightRay> Split()
             {
-                LightRay ray1 = new LightRay(Position, Direction, Width, Height);
-                ray1.TurnCW();
+                LightRay ray1 = new LightRay(Position, Direction.TurnCW(), Width, Height);
                 yield return ray1;
 
-                LightRay ray2 = new LightRay(Position, Direction, Width, Height);
-                ray2.TurnCCW();
+                LightRay ray2 = new LightRay(Position, Direction.TurnCCW(), Width, Height);
                 yield return ray2;
-            }
-
-            public void TurnCW()
-            {
-                Direction = (Direction)(((int)Direction + 1) % 4);
-            }
-
-            public void TurnCCW()
-            {
-                Direction = (Direction)(((int)Direction + 3) % 4);
             }
 
             public bool Move()
             {
+                if (Position.X == 0 || Position.X == Width - 1 || Position.Y == 0 || Position.Y == Height - 1)
+                {
+                    return false;
+                }
+
                 switch (Direction)
                 {
                     case Direction.NORTH:
@@ -102,30 +128,9 @@ namespace AdventOfCode
                         break;
                 }
 
-                if(Position.X < 0 || Position.X >= Width || Position.Y < 0 || Position.Y >= Height)
-                {
-                    return false;
-                } else
-                {
-                    VisitGrid[Position.X, Position.Y] = true;
-                    return true;
-                }
+                return VisitedPoints.Add(new Point(Position.X, Position.Y));
+                
             }
-
-            public void MergeVisitsFrom(LightRay other)
-            {
-                for(var x = 0; x < Width; x++)
-                {
-                    for(var y = 0; y < Height; y++)
-                    {
-                        if (!VisitGrid[x, y])
-                        {
-                            VisitGrid[x, y] = other.VisitGrid[x, y];
-                        }
-                    }
-                }
-            }
-
         }
 
 
@@ -150,120 +155,33 @@ namespace AdventOfCode
         }
         Dictionary<Point, LightRay> SplitPointCache = new();
 
-        private void RunRay(LightRay ray, List<(Point,Direction)> LoopDetect)
+        private void RunRay(LightRay startRay, List<(Point,Direction)> LoopDetect)
         {
-            while (ray.Move())
+            var visited = new HashSet<(Point, Direction)>();
+            var rays = new Queue<LightRay>();
+            rays.Enqueue(startRay);
+
+            while(rays.Count > 0)
             {
-                switch (Grid[ray.Position.X, ray.Position.Y])
+                var ray = rays.Dequeue(); ;
+                if (!visited.Add((ray.Position, ray.Direction)))
                 {
-                    case '.':
-                        continue;
-                    case '/':
-                        if (ray.Direction == Direction.EAST || ray.Direction == Direction.WEST)
-                        {
-                            ray.TurnCCW();
-                        }
-                        else
-                        {
-                            ray.TurnCW();
-                        }
-                        break;
-                    case '\\':
-                        if (ray.Direction == Direction.EAST || ray.Direction == Direction.WEST)
-                        {
-                            ray.TurnCW();
-                        }
-                        else
-                        {
-                            ray.TurnCCW();
-                        }
-                        break;
-                    case '|':
-                        if (ray.Direction == Direction.NORTH || ray.Direction == Direction.SOUTH)
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            if (LoopDetect.Contains((ray.Position,ray.Direction)))
-                            {
-                                return;
-                            }
-                            else
-                            {
-                                LoopDetect.Add((ray.Position, ray.Direction));
-                                if (SplitPointCache.ContainsKey(ray.Position))
-                                {
-                                    ray.MergeVisitsFrom(SplitPointCache[ray.Position]);
-                                    return;
-                                }
-                                else
-                                {
-                                    foreach (var r in ray.Split())
-                                    {
-                                        RunRay(r, LoopDetect);
-                                        ray.MergeVisitsFrom(r);
-                                    }
-
-                                    if (SplitPointCache.ContainsKey(ray.Position))
-                                    {
-                                        SplitPointCache[ray.Position].MergeVisitsFrom(ray);
-                                    }
-                                    else
-                                    {
-                                        SplitPointCache.Add(ray.Position, ray);
-                                    }
-
-                                    return;
-                                }
-                            }
-                        }
-                    case '-':
-                        if (ray.Direction == Direction.EAST || ray.Direction == Direction.WEST)
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            if (LoopDetect.Contains((ray.Position, ray.Direction)))
-                            {
-                                return;
-                            }
-                            else
-                            {
-                                LoopDetect.Add((ray.Position, ray.Direction));
-                                if (SplitPointCache.ContainsKey(ray.Position))
-                                {
-                                    ray.MergeVisitsFrom(SplitPointCache[ray.Position]);
-                                    return;
-                                }
-                                else
-                                {
-                                    foreach (var r in ray.Split())
-                                    {
-                                        RunRay(r, LoopDetect);
-                                        ray.MergeVisitsFrom(r);
-                                    }
-
-                                    if (SplitPointCache.ContainsKey(ray.Position))
-                                    {
-                                        SplitPointCache[ray.Position].MergeVisitsFrom(ray);
-                                    }
-                                    else
-                                    {
-                                        SplitPointCache.Add(ray.Position, ray);
-                                    }
-                                    return;
-                                }
-                            }
-                        }
+                    continue;
                 }
+
+                RunRaySegment(ray);
             }
+
+        }
+
+        private void RunRaySegment(LightRay ray)
+        {
+            
         }
 
         public override ValueTask<string> Solve_1()
         {
-            var startRay = new LightRay(new Point(-1, 0), Direction.EAST, Width, Height);
+            var startRay = new LightRay(new Point(0, 0), Direction.EAST, Width, Height);
             RunRay(startRay, new());
             //startRay.PrintVisitGrid();
             var answer = startRay.GetVisitCount();
@@ -272,42 +190,6 @@ namespace AdventOfCode
 
         public override ValueTask<string> Solve_2()
         {
-            var rayCount = 0;
-
-            /* start a ray from each point along the border of the grid and find which one returns the largest visit count */
-            var maxVisitCount = 0;
-            for(var x = 0; x < Width; x++)
-            {
-                var ray = new LightRay(new Point(x, -1), Direction.SOUTH, Width, Height);
-                RunRay(ray, new());
-                maxVisitCount = Math.Max(maxVisitCount, ray.GetVisitCount());
-                Console.WriteLine();
-                ray.PrintVisitGrid();
-
-                ray = new LightRay(new Point(x, Height), Direction.NORTH, Width, Height);
-                RunRay(ray, new());
-                maxVisitCount = Math.Max(maxVisitCount, ray.GetVisitCount());
-                Console.WriteLine();
-                ray.PrintVisitGrid();
-                rayCount += 2;
-            }
-
-            for (var y = 0; y < Height; y++)
-            {
-                var ray = new LightRay(new Point(-1, y), Direction.EAST, Width, Height);
-                RunRay(ray, new());
-                maxVisitCount = Math.Max(maxVisitCount, ray.GetVisitCount());
-                Console.WriteLine();
-                ray.PrintVisitGrid();
-                ray = new LightRay(new Point(Width, y), Direction.WEST, Width, Height);
-                RunRay(ray, new());
-                maxVisitCount = Math.Max(maxVisitCount, ray.GetVisitCount());
-                Console.WriteLine();
-                ray.PrintVisitGrid();
-                rayCount += 2;
-            }
-
-
             return new(maxVisitCount.ToString());
         }
     }
