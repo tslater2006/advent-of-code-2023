@@ -25,6 +25,18 @@ namespace AdventOfCode
             public int Height;
             bool[,] VisitGrid;
 
+            public void PrintVisitGrid()
+            {
+                for(var y = 0; y < Height; y++)
+                {
+                    for(var x = 0; x < Width; x++)
+                    {
+                        Console.Write(VisitGrid[x, y] ? 'X' : '.');
+                    }
+                    Console.WriteLine();
+                }   
+            }
+
             public int GetVisitCount()
             {
                 var count = 0;
@@ -138,7 +150,7 @@ namespace AdventOfCode
         }
         Dictionary<Point, LightRay> SplitPointCache = new();
 
-        private void RunRay(LightRay ray, List<Point> SeenSplits)
+        private void RunRay(LightRay ray, List<(Point,Direction)> LoopDetect)
         {
             while (ray.Move())
             {
@@ -173,12 +185,13 @@ namespace AdventOfCode
                         }
                         else
                         {
-                            if (SeenSplits.Contains(ray.Position))
+                            if (LoopDetect.Contains((ray.Position,ray.Direction)))
                             {
                                 return;
                             }
                             else
                             {
+                                LoopDetect.Add((ray.Position, ray.Direction));
                                 if (SplitPointCache.ContainsKey(ray.Position))
                                 {
                                     ray.MergeVisitsFrom(SplitPointCache[ray.Position]);
@@ -186,13 +199,21 @@ namespace AdventOfCode
                                 }
                                 else
                                 {
-                                    SeenSplits.Add(ray.Position);
                                     foreach (var r in ray.Split())
                                     {
-                                        RunRay(r, SeenSplits);
+                                        RunRay(r, LoopDetect);
                                         ray.MergeVisitsFrom(r);
                                     }
-                                    SplitPointCache.Add(ray.Position, ray);
+
+                                    if (SplitPointCache.ContainsKey(ray.Position))
+                                    {
+                                        SplitPointCache[ray.Position].MergeVisitsFrom(ray);
+                                    }
+                                    else
+                                    {
+                                        SplitPointCache.Add(ray.Position, ray);
+                                    }
+
                                     return;
                                 }
                             }
@@ -204,12 +225,13 @@ namespace AdventOfCode
                         }
                         else
                         {
-                            if (SeenSplits.Contains(ray.Position))
+                            if (LoopDetect.Contains((ray.Position, ray.Direction)))
                             {
                                 return;
                             }
                             else
                             {
+                                LoopDetect.Add((ray.Position, ray.Direction));
                                 if (SplitPointCache.ContainsKey(ray.Position))
                                 {
                                     ray.MergeVisitsFrom(SplitPointCache[ray.Position]);
@@ -217,13 +239,20 @@ namespace AdventOfCode
                                 }
                                 else
                                 {
-                                    SeenSplits.Add(ray.Position);
                                     foreach (var r in ray.Split())
                                     {
-                                        RunRay(r, SeenSplits);
+                                        RunRay(r, LoopDetect);
                                         ray.MergeVisitsFrom(r);
                                     }
-                                    SplitPointCache.Add(ray.Position, ray);
+
+                                    if (SplitPointCache.ContainsKey(ray.Position))
+                                    {
+                                        SplitPointCache[ray.Position].MergeVisitsFrom(ray);
+                                    }
+                                    else
+                                    {
+                                        SplitPointCache.Add(ray.Position, ray);
+                                    }
                                     return;
                                 }
                             }
@@ -236,7 +265,7 @@ namespace AdventOfCode
         {
             var startRay = new LightRay(new Point(-1, 0), Direction.EAST, Width, Height);
             RunRay(startRay, new());
-
+            //startRay.PrintVisitGrid();
             var answer = startRay.GetVisitCount();
             return new(answer.ToString());
         }
@@ -252,10 +281,14 @@ namespace AdventOfCode
                 var ray = new LightRay(new Point(x, -1), Direction.SOUTH, Width, Height);
                 RunRay(ray, new());
                 maxVisitCount = Math.Max(maxVisitCount, ray.GetVisitCount());
+                Console.WriteLine();
+                ray.PrintVisitGrid();
 
                 ray = new LightRay(new Point(x, Height), Direction.NORTH, Width, Height);
                 RunRay(ray, new());
                 maxVisitCount = Math.Max(maxVisitCount, ray.GetVisitCount());
+                Console.WriteLine();
+                ray.PrintVisitGrid();
                 rayCount += 2;
             }
 
@@ -264,10 +297,13 @@ namespace AdventOfCode
                 var ray = new LightRay(new Point(-1, y), Direction.EAST, Width, Height);
                 RunRay(ray, new());
                 maxVisitCount = Math.Max(maxVisitCount, ray.GetVisitCount());
-
+                Console.WriteLine();
+                ray.PrintVisitGrid();
                 ray = new LightRay(new Point(Width, y), Direction.WEST, Width, Height);
                 RunRay(ray, new());
                 maxVisitCount = Math.Max(maxVisitCount, ray.GetVisitCount());
+                Console.WriteLine();
+                ray.PrintVisitGrid();
                 rayCount += 2;
             }
 
