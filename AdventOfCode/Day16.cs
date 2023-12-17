@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Text;
@@ -20,16 +21,45 @@ namespace AdventOfCode
         {
             public Point Position;
             public Direction Direction;
-            public List<(Point, Direction)> Path = new();
-            public LightRay(Point position, Direction direction)
+            public int Width;
+            public int Height;
+            bool[,] VisitGrid;
+
+            public int GetVisitCount()
+            {
+                var count = 0;
+                for(var x = 0; x < Width; x++)
+                {
+                    for(var y = 0; y < Height; y++)
+                    {
+                        if (VisitGrid[x, y])
+                        {
+                            count++;
+                        }
+                    }
+                }
+
+                return count;
+            }
+
+            public LightRay(Point position, Direction direction, int width, int height)
             {
                 Position = position;
                 Direction = direction;
+                Width = width;
+                Height = height;
+                VisitGrid = new bool[width, height];
             }
 
-            public LightRay[] Split()
+            public IEnumerable<LightRay> Split()
             {
-                return null;
+                LightRay ray1 = new LightRay(Position, Direction, Width, Height);
+                ray1.TurnCW();
+                yield return ray1;
+
+                LightRay ray2 = new LightRay(Position, Direction, Width, Height);
+                ray2.TurnCCW();
+                yield return ray2;
             }
 
             public void TurnCW()
@@ -42,7 +72,7 @@ namespace AdventOfCode
                 Direction = (Direction)(((int)Direction + 3) % 4);
             }
 
-            public void Move()
+            public bool Move()
             {
                 switch (Direction)
                 {
@@ -59,15 +89,44 @@ namespace AdventOfCode
                         Position.X--;
                         break;
                 }
-                Path.Add((Position, Direction));
+
+                if(Position.X < 0 || Position.X >= Width || Position.Y < 0 || Position.Y >= Height)
+                {
+                    return false;
+                } else
+                {
+                    VisitGrid[Position.X, Position.Y] = true;
+                    return true;
+                }
+            }
+
+            public void MergeVisitsFrom(LightRay other)
+            {
+                for(var x = 0; x < Width; x++)
+                {
+                    for(var y = 0; y < Height; y++)
+                    {
+                        if (!VisitGrid[x, y])
+                        {
+                            VisitGrid[x, y] = other.VisitGrid[x, y];
+                        }
+                    }
+                }
             }
 
         }
 
+
         char[,] Grid;
+        int Width;
+        int Height;
+
         public Day16()
         {
             var lines = File.ReadAllLines(InputFilePath);
+            Width = lines[0].Length;
+            Height = lines.Length;
+
             Grid = new char[lines[0].Length, lines.Length];
             for(var y = 0; y < lines.Length; y++)
             {
@@ -77,128 +136,143 @@ namespace AdventOfCode
                 }
             }
         }
+        Dictionary<Point, LightRay> SplitPointCache = new();
 
-        private int GetEnergizedCellCount(Point position, Direction direction)
+        private void RunRay(LightRay ray, List<Point> SeenSplits)
         {
-            Dictionary<Point, int> visitCount = new();
-            HashSet<(Point, Direction)> loopDetection = new();
-            var startingRay = new LightRay(position, direction);
-            Stack<LightRay> rays = new();
-            rays.Push(startingRay);
-
-            while (rays.Count > 0)
+            while (ray.Move())
             {
-                var ray = rays.Pop();
-
-                while (true)
+                switch (Grid[ray.Position.X, ray.Position.Y])
                 {
-                    ray.Move();
-                    if (ray.Position.X < 0 || ray.Position.X >= Grid.GetLength(0) || ray.Position.Y < 0 || ray.Position.Y >= Grid.GetLength(1))
-                    {
+                    case '.':
+                        continue;
+                    case '/':
+                        if (ray.Direction == Direction.EAST || ray.Direction == Direction.WEST)
+                        {
+                            ray.TurnCCW();
+                        }
+                        else
+                        {
+                            ray.TurnCW();
+                        }
                         break;
-                    }
-                    if (loopDetection.Contains((ray.Position, ray.Direction)))
-                    {
+                    case '\\':
+                        if (ray.Direction == Direction.EAST || ray.Direction == Direction.WEST)
+                        {
+                            ray.TurnCW();
+                        }
+                        else
+                        {
+                            ray.TurnCCW();
+                        }
                         break;
-                    }
-                    loopDetection.Add((ray.Position, ray.Direction));
-
-                    if (visitCount.ContainsKey(ray.Position))
-                    {
-                        visitCount[ray.Position]++;
-                    }
-                    else
-                    {
-                        visitCount[ray.Position] = 1;
-                    }
-
-                    switch (Grid[ray.Position.X, ray.Position.Y])
-                    {
-                        case '.':
+                    case '|':
+                        if (ray.Direction == Direction.NORTH || ray.Direction == Direction.SOUTH)
+                        {
                             continue;
-                        case '/':
-                            if (ray.Direction == Direction.EAST || ray.Direction == Direction.WEST)
+                        }
+                        else
+                        {
+                            if (SeenSplits.Contains(ray.Position))
                             {
-                                ray.TurnCCW();
+                                return;
                             }
                             else
                             {
-                                ray.TurnCW();
+                                if (SplitPointCache.ContainsKey(ray.Position))
+                                {
+                                    ray.MergeVisitsFrom(SplitPointCache[ray.Position]);
+                                    return;
+                                }
+                                else
+                                {
+                                    SeenSplits.Add(ray.Position);
+                                    foreach (var r in ray.Split())
+                                    {
+                                        RunRay(r, SeenSplits);
+                                        ray.MergeVisitsFrom(r);
+                                    }
+                                    SplitPointCache.Add(ray.Position, ray);
+                                    return;
+                                }
                             }
-                            break;
-                        case '\\':
-                            if (ray.Direction == Direction.EAST || ray.Direction == Direction.WEST)
+                        }
+                    case '-':
+                        if (ray.Direction == Direction.EAST || ray.Direction == Direction.WEST)
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            if (SeenSplits.Contains(ray.Position))
                             {
-                                ray.TurnCW();
+                                return;
                             }
                             else
                             {
-                                ray.TurnCCW();
+                                if (SplitPointCache.ContainsKey(ray.Position))
+                                {
+                                    ray.MergeVisitsFrom(SplitPointCache[ray.Position]);
+                                    return;
+                                }
+                                else
+                                {
+                                    SeenSplits.Add(ray.Position);
+                                    foreach (var r in ray.Split())
+                                    {
+                                        RunRay(r, SeenSplits);
+                                        ray.MergeVisitsFrom(r);
+                                    }
+                                    SplitPointCache.Add(ray.Position, ray);
+                                    return;
+                                }
                             }
-                            break;
-                        case '|':
-                            if (ray.Direction == Direction.NORTH || ray.Direction == Direction.SOUTH)
-                            {
-                                continue;
-                            }
-                            else
-                            {
-                                var splitRay = new LightRay(ray.Position, ray.Direction);
-                                splitRay.TurnCW();
-                                rays.Push(splitRay);
-                                ray.TurnCCW();
-                            }
-                            break;
-                        case '-':
-                            if (ray.Direction == Direction.EAST || ray.Direction == Direction.WEST)
-                            {
-                                continue;
-                            }
-                            else
-                            {
-                                var splitRay = new LightRay(ray.Position, ray.Direction);
-                                splitRay.TurnCW();
-                                rays.Push(splitRay);
-                                ray.TurnCCW();
-                            }
-                            break;
-                    }
+                        }
                 }
             }
-
-            return visitCount.Keys.Count;
         }
 
         public override ValueTask<string> Solve_1()
         {
-            var answer = GetEnergizedCellCount(new Point(-1, 0), Direction.EAST);
+            var startRay = new LightRay(new Point(-1, 0), Direction.EAST, Width, Height);
+            RunRay(startRay, new());
+
+            var answer = startRay.GetVisitCount();
             return new(answer.ToString());
         }
 
         public override ValueTask<string> Solve_2()
         {
-            var highestCount = 0;
+            var rayCount = 0;
 
-            /* top and bottom rows */
-            for(var x = 0; x < Grid.GetLength(0); x++)
+            /* start a ray from each point along the border of the grid and find which one returns the largest visit count */
+            var maxVisitCount = 0;
+            for(var x = 0; x < Width; x++)
             {
-                var count = GetEnergizedCellCount(new Point(x, -1), Direction.SOUTH);
-                if (count > highestCount) { highestCount = count; }
-                count = GetEnergizedCellCount(new Point(x, Grid.GetLength(1)), Direction.NORTH);
-                if (count > highestCount) { highestCount = count; }
+                var ray = new LightRay(new Point(x, -1), Direction.SOUTH, Width, Height);
+                RunRay(ray, new());
+                maxVisitCount = Math.Max(maxVisitCount, ray.GetVisitCount());
+
+                ray = new LightRay(new Point(x, Height), Direction.NORTH, Width, Height);
+                RunRay(ray, new());
+                maxVisitCount = Math.Max(maxVisitCount, ray.GetVisitCount());
+                rayCount += 2;
             }
 
-            /* left and right columns*/
-            for(var y = 0; y < Grid.GetLength(1); y++)
+            for (var y = 0; y < Height; y++)
             {
-                var count = GetEnergizedCellCount(new Point(-1, y), Direction.EAST);
-                if (count > highestCount) { highestCount = count; }
-                count = GetEnergizedCellCount(new Point(Grid.GetLength(0), y), Direction.WEST);
-                if (count > highestCount) { highestCount = count; }
+                var ray = new LightRay(new Point(-1, y), Direction.EAST, Width, Height);
+                RunRay(ray, new());
+                maxVisitCount = Math.Max(maxVisitCount, ray.GetVisitCount());
+
+                ray = new LightRay(new Point(Width, y), Direction.WEST, Width, Height);
+                RunRay(ray, new());
+                maxVisitCount = Math.Max(maxVisitCount, ray.GetVisitCount());
+                rayCount += 2;
             }
 
 
-            return new(highestCount.ToString());
+            return new(maxVisitCount.ToString());
         }
     }
 }
