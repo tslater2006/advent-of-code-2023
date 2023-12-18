@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Drawing;
@@ -177,28 +178,29 @@ namespace AdventOfCode
 
         public override ValueTask<string> Solve_2()
         {
-            var highestCount = 0;
+            ConcurrentBag<int> counts = new();
 
-            /* top and bottom rows */
-            for(var x = 0; x < Grid.GetLength(0); x++)
+            Parallel.ForEach(Enumerable.Range(0, Grid.GetLength(0)), x =>
             {
-                var count = GetEnergizedCellCount(new Point(x, -1), Direction.SOUTH);
-                if (count > highestCount) { highestCount = count; }
-                count = GetEnergizedCellCount(new Point(x, Grid.GetLength(1)), Direction.NORTH);
-                if (count > highestCount) { highestCount = count; }
-            }
+                var count = GetEnergizedCellCount(new Point(x, -1), Direction.NORTH);
+                counts.Add(count);
 
-            /* left and right columns*/
-            for(var y = 0; y < Grid.GetLength(1); y++)
+                count = GetEnergizedCellCount(new Point(x, Grid.GetLength(1)), Direction.SOUTH);
+                counts.Add(count);
+            });
+
+            Parallel.ForEach(Enumerable.Range(0, Grid.GetLength(1)), y =>
             {
                 var count = GetEnergizedCellCount(new Point(-1, y), Direction.EAST);
-                if (count > highestCount) { highestCount = count; }
+                counts.Add(count);
+
                 count = GetEnergizedCellCount(new Point(Grid.GetLength(0), y), Direction.WEST);
-                if (count > highestCount) { highestCount = count; }
-            }
+                counts.Add(count);
+            });
 
-
-            return new(highestCount.ToString());
+            var answer = counts.Max();
+            
+            return new(answer.ToString());
         }
     }
 }
