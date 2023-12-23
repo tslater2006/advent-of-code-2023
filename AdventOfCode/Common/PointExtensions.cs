@@ -20,8 +20,28 @@ namespace AdventOfCode.Common
                 }
             }
         }
+        public static IEnumerable<Point> GetOrthoganalNeighbors(this Point point)
+        {
+            var orthoDirections = new[] { new Point(0, 1), new Point(0, -1), new Point(1, 0), new Point(-1, 0) };
+            foreach(var direction in orthoDirections)
+            {
+                yield return new Point(point.X + direction.X, point.Y + direction.Y);;
+            }
+        }
+        public static IEnumerable<Point> GetOrthoganalNeighbors(this Point point, Rectangle rectangle)
+        {
+            var orthoDirections = new[] { new Point(0, 1), new Point(0, -1), new Point(1, 0), new Point(-1, 0) };
+            foreach (var direction in orthoDirections)
+            {
+                var newPoint = new Point(point.X + direction.X, point.Y + direction.Y);
+                if (rectangle.Contains(newPoint))
+                {
+                    yield return newPoint;
+                }
+            }
+        }
 
-        public static IEnumerable<Point> GetNeighborsWithinRectangle(this Point point, Rectangle rectangle)
+        public static IEnumerable<Point> GetNeighbors(this Point point, Rectangle rectangle)
         {
             for (int x = -1; x <= 1; x++)
             {
